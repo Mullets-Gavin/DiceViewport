@@ -126,7 +126,7 @@ function Viewport:Spin(element)
 				logged = logged - rate
 				local cframe = model.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(increment), 0) * CFrame.new(0,0,size.Y * dist) * offset
 				camera.CFrame = CFrame.new(cframe.Position,model.PrimaryPart.Position)
-				increment += 2
+				increment = increment + 2
 			end
 		end)
 		table.insert(Viewport.Cache[element]['Events'],event)
