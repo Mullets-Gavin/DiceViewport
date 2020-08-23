@@ -87,13 +87,19 @@ local function CreateObject(clone)
 	return item
 end
 
-function Viewport:Spin(element)
-	
+function Viewport:Stop(element)
+	if Viewport.Cache[element] then
+		for index,event in pairs(Viewport.Cache[element]['Events']) do
+			event:Disconnect()
+		end
+		Viewport.Cache[element]['Events'] = {}
+	end
 end
 
 function Viewport:Destroy(element)
 	if Viewport.Cache[element] then
 		Viewport.Cache[element]['Element']:Destroy()
+		Viewport.Cache[element]['Model']:Destroy()
 		for index,event in pairs(Viewport.Cache[element]['Events']) do
 			event:Disconnect()
 		end
@@ -101,15 +107,39 @@ function Viewport:Destroy(element)
 	end
 end
 
+function Viewport:Spin(element)
+	if Viewport.Cache[element] then
+		Viewport:Stop(element)
+		local camera = Viewport.Cache[element]['Camera']
+		local model = Viewport.Cache[element]['Model']
+		local angles = Viewport.Cache[element]['Properties']['Angles'] or CFrame.Angles(0,0,0)
+		local offset = Viewport.Cache[element]['Properties']['Offset'] or CFrame.new(0,0,0)
+		local dist = Viewport.Cache[element]['Properties']['Distance'] or 1
+		local size = model:GetExtentsSize()
+		local rate = 1/30
+		local logged = 0
+		local increment = 0
+		local event
+		event = Services['RunService'].Heartbeat:Connect(function(dt)
+			logged = logged + dt
+			while logged >= rate do
+				logged = logged - rate
+				local cframe = model.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(increment), 0) * CFrame.new(0,0,size.Y * dist) * offset
+				camera.CFrame = CFrame.new(cframe.Position,model.PrimaryPart.Position)
+				increment += 2
+			end
+		end)
+		table.insert(Viewport.Cache[element]['Events'],event)
+		return true
+	end
+	warn('[VIEWPORT]: Element supplied is not a valid viewport')
+end
+
 function Viewport:Create(element,obj,props)
 	if not element then warn() return false end
 	if not props then props = {} end
 	if Viewport.Cache[element] then
-		Viewport.Cache[element]['Element']:Destroy()
-		for index,event in pairs(Viewport.Cache[element]['Events']) do
-			event:Disconnect()
-		end
-		Viewport.Cache[element] = nil
+		Viewport:Destroy(element)
 	end
 	local item = CreateObject(obj)
 	local port = CreateViewport(element)
@@ -129,7 +159,10 @@ function Viewport:Create(element,obj,props)
 		end
 		port.CurrentCamera = camera
 		Viewport.Cache[element] = {
+			['Model'] = item;
 			['Element'] = port;
+			['Camera'] = camera;
+			['Properties'] = props;
 			['Events'] = {};
 		}
 		return port
