@@ -83,6 +83,12 @@ local function CreateObject(clone)
 		end
 		item = new
 		folder:Destroy()
+	elseif not item.PrimaryPart then
+		for index,part in pairs(item:GetChildren()) do
+			if part:IsA('BasePart') then
+				item.PrimaryPart = part
+			end
+		end
 	end
 	return item
 end
